@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Brilho de Sofie">
+  <defs>
+    <linearGradient id="rim" x1="15" x2="105" y1="12" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d91f85" />
+      <stop offset="1" stop-color="#8d174f" />
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#rim)" />
+  <circle cx="60" cy="60" r="49" fill="#bd0f69" />
+  <path d="M60 11a49 49 0 0 1 0 98z" fill="#d6539a" opacity=".82" />
+  <path
+    d="M29 77h62v12H29zM34 73l-9-23 20 8 15-30 15 30 20-8-9 23H34z"
+    fill="#fff"
+  />
+  <circle cx="25" cy="49" r="6" fill="#fff" />
+  <circle cx="45" cy="56" r="6" fill="#fff" />
+  <circle cx="75" cy="56" r="6" fill="#fff" />
+  <circle cx="95" cy="49" r="6" fill="#fff" />
+  <path d="M56 23h8v33h-8z" fill="#fff" />
+  <circle cx="60" cy="22" r="7" fill="#fff" />
+</svg>
