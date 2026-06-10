@@ -618,6 +618,30 @@ fieldset {
   line-height: 1.5;
 }
 
+.form-status {
+  display: none;
+  margin: 0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.form-status.is-visible {
+  display: block;
+}
+
+.form-status.is-success {
+  background: rgba(227, 255, 238, 0.14);
+  color: #d8ffe7;
+}
+
+.form-status.is-error {
+  background: rgba(255, 143, 190, 0.14);
+  color: #ffd0e3;
+}
+
 .site-footer {
   display: flex;
   flex-wrap: wrap;
