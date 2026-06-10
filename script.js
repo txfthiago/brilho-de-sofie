@@ -1,4 +1,5 @@
 const leadForm = document.querySelector(".lead-form");
+const leadFormScriptVersion = "20260609-telefone-digits";
 const phoneInput = leadForm?.querySelector('input[name="telefone"]');
 const siteHeader = document.querySelector(".site-header");
 const menuToggle = document.querySelector(".menu-toggle");
@@ -10,6 +11,7 @@ const revealItems = document.querySelectorAll(
 const googleFormsConfig = {
   formActionUrl:
     "https://docs.google.com/forms/d/e/1FAIpQLSdycemqmBN4lWBtNpdEqlHkeIjLQoN1M7ErUk4DhFfIvQNt7g/formResponse",
+  debug: true,
   fields: {
     nome: "entry.778559582",
     email: "entry.1370430074",
@@ -55,16 +57,27 @@ if (leadForm) {
     telefone: leadForm.querySelector('input[name="telefone"]'),
   };
 
+  const logLeadForm = (...args) => {
+    if (googleFormsConfig.debug) {
+      console.log("[Brilho de Sofie lead form]", ...args);
+    }
+  };
+
+  logLeadForm("script loaded", leadFormScriptVersion);
+
   const showError = (fieldName, message) => {
     const field = fields[fieldName];
     const error = leadForm.querySelector(`[data-error-for="${fieldName}"]`);
 
-    if (!field || !error) {
+    if (!error) {
       return;
     }
 
-    field.classList.toggle("is-invalid", Boolean(message));
-    field.setAttribute("aria-invalid", String(Boolean(message)));
+    if (field) {
+      field.classList.toggle("is-invalid", Boolean(message));
+      field.setAttribute("aria-invalid", String(Boolean(message)));
+    }
+
     error.textContent = message;
     error.classList.toggle("is-visible", Boolean(message));
   };
@@ -92,21 +105,73 @@ if (leadForm) {
     );
   };
 
-  const submitToGoogleForms = async (formData, interests) => {
-    const googlePayload = new FormData();
+  const appendHiddenInput = (form, name, value) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  };
 
-    googlePayload.append(googleFormsConfig.fields.nome, formData.get("nome") || "");
-    googlePayload.append(googleFormsConfig.fields.email, formData.get("email") || "");
-    googlePayload.append(googleFormsConfig.fields.telefone, formData.get("telefone") || "");
-    googlePayload.append(
-      googleFormsConfig.fields.interesses,
-      interests.length ? interests.join(", ") : "não informado"
-    );
+  const submitToGoogleForms = (formData, interests) => {
+    return new Promise((resolve) => {
+      const iframeName = `google-forms-target-${Date.now()}`;
+      const iframe = document.createElement("iframe");
+      const googleForm = document.createElement("form");
+      let settled = false;
 
-    await fetch(googleFormsConfig.formActionUrl, {
-      method: "POST",
-      mode: "no-cors",
-      body: googlePayload,
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        iframe.remove();
+        googleForm.remove();
+        resolve();
+      };
+
+      iframe.name = iframeName;
+      iframe.hidden = true;
+      googleForm.hidden = true;
+      googleForm.method = "POST";
+      googleForm.action = googleFormsConfig.formActionUrl;
+      googleForm.target = iframeName;
+
+      const payload = {
+        nome: formData.get("nome") || "",
+        email: formData.get("email") || "",
+        telefone: fields.telefone.value.replace(/\D/g, ""),
+        interesses: interests,
+      };
+
+      appendHiddenInput(googleForm, googleFormsConfig.fields.nome, payload.nome);
+      appendHiddenInput(googleForm, googleFormsConfig.fields.email, payload.email);
+      appendHiddenInput(googleForm, googleFormsConfig.fields.telefone, payload.telefone);
+
+      payload.interesses.forEach((interest) => {
+        appendHiddenInput(googleForm, googleFormsConfig.fields.interesses, interest);
+      });
+
+      logLeadForm("sending to Google Forms", {
+        action: googleFormsConfig.formActionUrl,
+        entries: googleFormsConfig.fields,
+        payload,
+      });
+
+      iframe.addEventListener(
+        "load",
+        () => {
+          logLeadForm("Google Forms iframe loaded");
+          window.setTimeout(finish, 300);
+        },
+        { once: true }
+      );
+
+      document.body.append(iframe, googleForm);
+      googleForm.submit();
+      logLeadForm("hidden form submitted");
+      window.setTimeout(finish, 3500);
     });
   };
 
@@ -115,6 +180,7 @@ if (leadForm) {
     const phoneDigits = fields.telefone.value.replace(/\D/g, "");
     const email = fields.email.value.trim();
     const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    const interests = new FormData(leadForm).getAll("interesse");
     let isValid = true;
 
     if (nameParts.length < 2) {
@@ -136,6 +202,13 @@ if (leadForm) {
       isValid = false;
     } else {
       showError("telefone", "");
+    }
+
+    if (!interests.length) {
+      showError("interesse", "Selecione pelo menos um interesse.");
+      isValid = false;
+    } else {
+      showError("interesse", "");
     }
 
     return isValid;
@@ -168,6 +241,12 @@ if (leadForm) {
     });
   });
 
+  leadForm.querySelectorAll('input[name="interesse"]').forEach((field) => {
+    field.addEventListener("change", () => {
+      showError("interesse", "");
+    });
+  });
+
   leadForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -187,8 +266,10 @@ if (leadForm) {
       try {
         await submitToGoogleForms(formData, interests);
         leadForm.reset();
+        logLeadForm("submission flow finished");
         showStatus("Contato enviado com sucesso. Em breve falaremos com você.", "success");
       } catch {
+        console.error("[Brilho de Sofie lead form] Google Forms submission failed");
         showStatus("Não foi possível enviar agora. Tente novamente ou chame pelo WhatsApp.", "error");
       } finally {
         submitButton.disabled = false;
